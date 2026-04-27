@@ -1,4 +1,5 @@
 import { useSignUp } from "@/hooks/auth/use-sign-up";
+import { useThemeColor } from "@/hooks/use-theme-color";
 import { useState } from "react";
 import {
   StyleSheet,
@@ -14,22 +15,49 @@ export default function SignUpScreen() {
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+
+  const textColor = useThemeColor({}, "text");
+  const borderColor = useThemeColor({}, "border");
+  const primaryColor = useThemeColor({}, "primary");
   return (
     <View style={styles.container}>
-      <Text style={styles.title}>Create Account</Text>
+      <Text
+        style={[
+          styles.title,
+          {
+            color: textColor,
+          },
+        ]}
+      >
+        Create Account
+      </Text>
 
       <TextInput
         value={name}
         onChangeText={setName}
         placeholder="Full Name"
-        style={styles.input}
+        style={[
+          styles.input,
+          {
+            borderColor,
+            color: textColor,
+          },
+        ]}
+        placeholderTextColor={borderColor}
       />
 
       <TextInput
         value={email}
         onChangeText={setEmail}
         placeholder="Email"
-        style={styles.input}
+        style={[
+          styles.input,
+          {
+            borderColor,
+            color: textColor,
+          },
+        ]}
+        placeholderTextColor={borderColor}
       />
 
       <TextInput
@@ -37,12 +65,25 @@ export default function SignUpScreen() {
         onChangeText={setPassword}
         placeholder="Password"
         secureTextEntry
-        style={styles.input}
+        style={[
+          styles.input,
+          {
+            borderColor,
+            color: textColor,
+          },
+        ]}
+        placeholderTextColor={borderColor}
       />
 
       <TouchableOpacity
         disabled={isPending}
-        style={styles.button}
+        style={[
+          styles.button,
+          {
+            backgroundColor: primaryColor,
+            opacity: isPending ? 0.7 : 1,
+          },
+        ]}
         onPress={() => {
           mutate({
             data: {
@@ -59,7 +100,7 @@ export default function SignUpScreen() {
       <AuthSwitcher
         text="Already have an account?"
         linkText="Login"
-        href="/(auth)/signin"
+        href="/signin"
       />
     </View>
   );
@@ -70,7 +111,6 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: "center",
     paddingHorizontal: 24,
-    backgroundColor: "#fff",
   },
   title: {
     fontSize: 30,
@@ -79,10 +119,10 @@ const styles = StyleSheet.create({
   },
   input: {
     borderWidth: 1,
-    borderColor: "#ddd",
     borderRadius: 12,
     padding: 14,
     marginBottom: 16,
+    fontSize: 16,
   },
   button: {
     backgroundColor: "#000",

@@ -1,6 +1,7 @@
 import { services } from "@/services";
 import { useAuthStore } from "@/store/authStore";
 import { useMutation } from "@tanstack/react-query";
+import { router } from "expo-router";
 
 export type SignInPayload = {
   data: {
@@ -25,6 +26,7 @@ export const useSignIn = () => {
       if (!data?.email || !data?.password) {
         throw new Error("Please enter input fields");
       }
+      console.log("call happened");
       const res = await services.authServices.logIn({
         data,
       });
@@ -42,6 +44,7 @@ export const useSignIn = () => {
     },
     onSuccess: (data) => {
       setAuth(data);
+      router.replace("/(app)/chat");
     },
   });
 };

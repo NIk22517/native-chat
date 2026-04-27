@@ -1,4 +1,5 @@
 import { useSignIn } from "@/hooks/auth/use-sign-in";
+import { useThemeColor } from "@/hooks/use-theme-color";
 import { useState } from "react";
 import {
   StyleSheet,
@@ -11,42 +12,83 @@ import AuthSwitcher from "../../components/AuthSwitcher";
 
 export default function SignInScreen() {
   const { isPending, mutate } = useSignIn();
+
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+
+  const textColor = useThemeColor({}, "text");
+  const borderColor = useThemeColor({}, "border");
+  const primaryColor = useThemeColor({}, "primary");
+
   return (
-    <View style={styles.container}>
-      <Text style={styles.title}>Sign In</Text>
+    <View style={[styles.container]}>
+      <Text
+        style={[
+          styles.title,
+          {
+            color: textColor,
+          },
+        ]}
+      >
+        Sign In
+      </Text>
+
       <TextInput
         value={email}
-        onChangeText={(text) => setEmail(text)}
+        onChangeText={setEmail}
         placeholder="Email"
-        style={styles.input}
+        placeholderTextColor={borderColor}
+        style={[
+          styles.input,
+          {
+            borderColor,
+            color: textColor,
+          },
+        ]}
       />
+
       <TextInput
         value={password}
-        onChangeText={(text) => setPassword(text)}
+        onChangeText={setPassword}
         placeholder="Password"
+        placeholderTextColor={borderColor}
         secureTextEntry
-        style={styles.input}
+        style={[
+          styles.input,
+          {
+            borderColor,
+            color: textColor,
+          },
+        ]}
       />
+
       <TouchableOpacity
         disabled={isPending}
-        style={styles.button}
+        style={[
+          styles.button,
+          {
+            backgroundColor: primaryColor,
+            opacity: isPending ? 0.7 : 1,
+          },
+        ]}
         onPress={() => {
           mutate({
             data: {
-              email,
-              password,
+              email: email.trim(),
+              password: password.trim(),
             },
           });
         }}
       >
-        <Text style={styles.buttonText}>Login</Text>
+        <Text style={styles.buttonText}>
+          {isPending ? "Logging in..." : "Login"}
+        </Text>
       </TouchableOpacity>
+
       <AuthSwitcher
         text="Don't have an account?"
         linkText="Create new account"
-        href="/(auth)/signup"
+        href="/signup"
       />
     </View>
   );
@@ -57,7 +99,6 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: "center",
     paddingHorizontal: 24,
-    backgroundColor: "#fff",
   },
   title: {
     fontSize: 30,
@@ -66,13 +107,12 @@ const styles = StyleSheet.create({
   },
   input: {
     borderWidth: 1,
-    borderColor: "#ddd",
     borderRadius: 12,
     padding: 14,
     marginBottom: 16,
+    fontSize: 16,
   },
   button: {
-    backgroundColor: "#000",
     padding: 16,
     borderRadius: 12,
     alignItems: "center",
@@ -81,5 +121,6 @@ const styles = StyleSheet.create({
   buttonText: {
     color: "#fff",
     fontWeight: "600",
+    fontSize: 16,
   },
 });

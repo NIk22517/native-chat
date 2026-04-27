@@ -1,6 +1,7 @@
 import { services } from "@/services";
 import { useAuthStore } from "@/store/authStore";
 import { useMutation } from "@tanstack/react-query";
+import { router } from "expo-router";
 import { UserPayload } from "./use-sign-in";
 
 export type SignUpPayload = {
@@ -32,6 +33,7 @@ export const useSignUp = () => {
     },
     onSuccess: (data) => {
       setAuth(data);
+      router.replace("/(app)/chat");
     },
   });
 };

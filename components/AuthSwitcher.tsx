@@ -1,19 +1,34 @@
+import { useThemeColor } from "@/hooks/use-theme-color";
 import { Link } from "expo-router";
-import { StyleSheet, Text, View } from "react-native";
+import { StyleSheet, Text, TouchableOpacity, View } from "react-native";
 
 type Props = {
   text: string;
   linkText: string;
-  href: "/(auth)/signin" | "/(auth)/signup";
+  href: "/signin" | "/signup";
 };
 
 export default function AuthSwitcher({ text, linkText, href }: Props) {
+  const textColor = useThemeColor({}, "text");
+  const linkColor = useThemeColor({}, "primary");
+
   return (
     <View style={styles.container}>
-      <Text>{text} </Text>
+      <Text style={{ color: textColor }}>{text} </Text>
 
-      <Link href={href} style={styles.link}>
-        {linkText}
+      <Link href={href} asChild>
+        <TouchableOpacity>
+          <Text
+            style={[
+              styles.link,
+              {
+                color: linkColor,
+              },
+            ]}
+          >
+            {linkText}
+          </Text>
+        </TouchableOpacity>
       </Link>
     </View>
   );
@@ -26,7 +41,6 @@ const styles = StyleSheet.create({
     marginTop: 24,
   },
   link: {
-    color: "#2563eb",
     fontWeight: "600",
   },
 });
