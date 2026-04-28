@@ -19,16 +19,15 @@ export const useSignUp = () => {
       if (!data || !data.name || !data.email || !data.password) {
         throw new Error("Please Fill all the fields");
       }
-      console.log("api call");
+
       const res = await services.authServices.signUp({
         data,
       });
-      console.log(res, "api call");
 
       if (res.status === 200) {
         return res.data.data as UserPayload;
       }
-      console.log(res.data, "datadata");
+
       throw new Error(res?.data?.message);
     },
     onSuccess: (data) => {

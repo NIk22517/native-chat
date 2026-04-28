@@ -1,3 +1,4 @@
+import { useAuthStore } from "@/store/authStore";
 import axios, {
   type AxiosInstance,
   type AxiosRequestConfig,
@@ -25,8 +26,9 @@ export class BaseService {
       (response: AxiosResponse) => response,
       (error) => {
         if (error.response.status === 401) {
-        //   localStorage.removeItem("auth");
-        //   window.location.reload();
+          useAuthStore.setState({
+            user: null,
+          });
         }
         return Promise.reject(error);
       },

@@ -26,12 +26,10 @@ export const useSignIn = () => {
       if (!data?.email || !data?.password) {
         throw new Error("Please enter input fields");
       }
-      console.log("call happened");
+
       const res = await services.authServices.logIn({
         data,
       });
-
-      console.log(res.data.data, "res.data.data");
 
       if (res.status === 200) {
         return res.data.data as UserPayload;
