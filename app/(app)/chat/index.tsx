@@ -3,6 +3,7 @@ import {
   useMarkReadChat,
   type ChatItem,
 } from "@/hooks/chat/use-chat-list";
+import { useChatListSocket } from "@/hooks/chat/use-chat-list-socket";
 import { useThemeColor } from "@/hooks/use-theme-color";
 import { useRouter } from "expo-router";
 import { Image, Pressable, StyleSheet, Text, View } from "react-native";
@@ -61,7 +62,7 @@ export default function ChatScreen() {
 
     return item.members?.[0]?.profile_image || null;
   };
-
+  useChatListSocket();
   return (
     <View
       style={[

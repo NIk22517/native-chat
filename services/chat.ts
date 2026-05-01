@@ -47,11 +47,21 @@ export class ChatServices extends BaseService {
     });
   };
 
-  getMessages = (values: AuthInfo & { chat_id: string; query: string }) => {
-    return this.instance.get(
-      `/chat/messages/${values.chat_id}` + values.query,
-      this.buildConfig({ auth: values }),
-    );
+  getMessages = (
+    values: AuthInfo & {
+      chat_id: string;
+      query: {
+        limit: number;
+        before_id?: number;
+        after_id?: number;
+        around_id?: number;
+      };
+    },
+  ) => {
+    return this.instance.get(`/chat/messages/${values.chat_id}`, {
+      ...this.buildConfig({ auth: values }),
+      params: values.query,
+    });
   };
 
   sendMessages = (values: AuthInfo & { data: FormData }) => {

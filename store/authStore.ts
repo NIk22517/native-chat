@@ -5,9 +5,7 @@ import { createJSONStorage, persist } from "zustand/middleware";
 
 type AuthState = {
   user: UserPayload | null;
-
   setAuth: (data: UserPayload) => void;
-
   logout: () => void;
 };
 
