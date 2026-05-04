@@ -21,8 +21,10 @@ const MAPPING = {
   "paperplane.fill": "send",
   "chevron.left.forwardslash.chevron.right": "code",
   "chevron.right": "chevron-right",
-  "paperclip": "attach-file",
- "arrowshape.turn.up.right.fill": "reply-all"
+  paperclip: "attach-file",
+  "arrowshape.turn.up.right.fill": "reply-all",
+  "trash.fill": "delete",
+  xmark: "close",
 } as IconMapping;
 
 /**

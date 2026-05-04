@@ -1,18 +1,20 @@
 import { ChatInput } from "@/components/chat/chat-footer-input";
 import ChatList from "@/components/chat/chat-list";
+import { DeleteMessage } from "@/components/chat/message-delete-modal";
+import { IconSymbol } from "@/components/ui/icon-symbol";
 import {
   useGetSingleChatList,
   useMarkReadChat,
   type SingleChatListType,
 } from "@/hooks/chat/use-chat-list";
-import { useGetChatMessages } from "@/hooks/chat/use-chat-messages";
 import { useChatMsgSocket } from "@/hooks/chat/use-chat-msg-socket";
 import { useThemeColor } from "@/hooks/use-theme-color";
 import { useAuthStore } from "@/store/authStore";
+import { useChatStore } from "@/store/useChatStore";
 import { useHeaderHeight } from "@react-navigation/elements";
 import { Stack, useLocalSearchParams } from "expo-router";
 import { useEffect } from "react";
-import { KeyboardAvoidingView, Platform, View } from "react-native";
+import { KeyboardAvoidingView, Platform, Pressable, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 export default function ChatMessage() {
@@ -20,10 +22,6 @@ export default function ChatMessage() {
   const { chat_id } = useLocalSearchParams<{
     chat_id: string;
   }>();
-
-  const { data } = useGetChatMessages({
-    chat_id,
-  });
 
   const { data: listData } = useGetSingleChatList({
     chat_id,
@@ -61,13 +59,15 @@ export default function ChatMessage() {
     chat_id,
   });
 
-  const allMessages = (data?.pages ?? []).flatMap((el) => el.data);
+  const selected = useChatStore((s) => s.selected);
+  const clearSelection = useChatStore((s) => s.clearSelection);
+  const isSelected = selected.size > 0;
 
   return (
     <>
       <Stack.Screen
         options={{
-          title: getChatName(listData),
+          title: isSelected ? `${selected.size}` : getChatName(listData),
           headerStyle: {
             backgroundColor,
           },
@@ -76,6 +76,28 @@ export default function ChatMessage() {
             fontSize: 18,
             fontWeight: "600",
           },
+          headerLeft: isSelected
+            ? () => {
+                return (
+                  <Pressable
+                    onPress={clearSelection}
+                    hitSlop={12}
+                    style={{ marginLeft: 4, marginRight: 10 }}
+                  >
+                    <IconSymbol name="xmark" color={textColor} size={20} />
+                  </Pressable>
+                );
+              }
+            : undefined,
+          headerRight: isSelected
+            ? () => {
+                return (
+                  <View>
+                    <DeleteMessage />
+                  </View>
+                );
+              }
+            : undefined,
         }}
       />
 
@@ -91,7 +113,7 @@ export default function ChatMessage() {
           }}
         >
           <ChatList
-            allMessages={allMessages}
+            chat_id={chat_id}
             currentUserId={userId}
             textColor={textColor}
             isGroupChat={listData?.chat_type !== "single"}

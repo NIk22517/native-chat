@@ -18,12 +18,16 @@ interface SwipeableMessageProps {
   children: React.ReactNode;
   isMine: boolean;
   onReply: () => void;
+  onLongPress: () => void;
+  isSelected: boolean;
 }
 
 export const SwipeableMessage = ({
   children,
   isMine,
   onReply,
+  onLongPress,
+  isSelected,
 }: SwipeableMessageProps) => {
   const translateX = useSharedValue(0);
   const triggered = useSharedValue(false);
@@ -31,6 +35,12 @@ export const SwipeableMessage = ({
   const triggerReply = useCallback(() => {
     onReply();
   }, [onReply]);
+
+  const longPressGesture = Gesture.LongPress()
+    .minDuration(200)
+    .onStart(() => {
+      runOnJS(onLongPress)();
+    });
 
   const panGesture = Gesture.Pan()
     .activeOffsetX(isMine ? [-10, 999] : [-999, 10])
@@ -67,15 +77,17 @@ export const SwipeableMessage = ({
 
   const iconSide = isMine ? { left: 12 } : { right: 12 };
 
+  const composed = Gesture.Race(longPressGesture, panGesture);
+
   return (
-    <View style={styles.wrapper}>
+    <View style={[styles.wrapper, isSelected && styles.selectedBg]}>
       {/* Reply icon revealed behind the message */}
       <Animated.View style={[styles.replyIcon, iconSide, iconProgress]}>
         <ReplyArrow mirrored={isMine} />
       </Animated.View>
 
       {/* Sliding message row */}
-      <GestureDetector gesture={panGesture}>
+      <GestureDetector gesture={composed}>
         <Animated.View style={rowStyle}>{children}</Animated.View>
       </GestureDetector>
     </View>
@@ -103,5 +115,8 @@ const styles = StyleSheet.create({
     zIndex: 0,
     justifyContent: "center",
     alignItems: "center",
+  },
+  selectedBg: {
+    backgroundColor: "rgba(10, 124, 255, 0.12)",
   },
 });

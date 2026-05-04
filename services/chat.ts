@@ -1,3 +1,4 @@
+import { type DeleteMessagesPayload } from "@/hooks/chat/use-delete-chat-messages";
 import { BaseService, type AuthInfo } from "./baseService";
 
 export class ChatServices extends BaseService {
@@ -81,7 +82,7 @@ export class ChatServices extends BaseService {
 
   deleteMessage = (
     values: AuthInfo & {
-      data: { action: string; chat_id: number; message_ids: number[] };
+      data: DeleteMessagesPayload;
     },
   ) => {
     return this.instance.post(

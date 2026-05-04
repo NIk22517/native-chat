@@ -1,25 +1,30 @@
-import { type ChatMessage } from "@/hooks/chat/use-chat-messages";
-import { useChatStore } from "@/store/useChatStore";
+import {
+  useGetChatMessages,
+  type ChatMessage,
+} from "@/hooks/chat/use-chat-messages";
 import React, { useRef } from "react";
 import { FlatList, StyleSheet, Text, View } from "react-native";
 import ChatMessageItem from "./chat-message-item";
-import { SwipeableMessage } from "./swipeable-message";
 
 interface ChatListProps {
-  allMessages: ChatMessage[];
   currentUserId: number | undefined;
   textColor: string;
   isGroupChat?: boolean;
+  chat_id: string;
 }
 
 export default function ChatList({
-  allMessages,
   currentUserId,
   textColor,
   isGroupChat = false,
+  chat_id,
 }: ChatListProps) {
   const flatListRef = useRef<FlatList>(null);
-  const setReply = useChatStore((s) => s.setReply);
+
+  const { data, hasNextPage, fetchNextPage, isFetchingNextPage } =
+    useGetChatMessages({
+      chat_id,
+    });
 
   const shouldShowSenderName = (index: number, item: ChatMessage): boolean => {
     if (!isGroupChat) return false;
@@ -30,29 +35,23 @@ export default function ChatList({
     return false;
   };
 
+  const allMessages = (data?.pages ?? []).flatMap((el) => el.data);
+
   return (
     <FlatList
       style={{ flex: 1 }}
       ref={flatListRef}
-      keyboardShouldPersistTaps="handled"
       data={allMessages}
       contentContainerStyle={styles.contentContainer}
       keyExtractor={(item) => item.id.toString()}
       renderItem={({ item, index }) => (
-        <SwipeableMessage
-          isMine={item.sender_id === currentUserId}
-          onReply={() => {
-            setReply(item);
-          }}
-        >
-          <ChatMessageItem
-            msg={item}
-            currentUserId={currentUserId}
-            showSenderName={shouldShowSenderName(index, item)}
-          />
-        </SwipeableMessage>
+        <ChatMessageItem
+          msg={item}
+          currentUserId={currentUserId}
+          showSenderName={shouldShowSenderName(index, item)}
+        />
       )}
-      inverted={allMessages.length > 0 ? true : false}
+      inverted={allMessages.length > 0}
       ListEmptyComponent={() => (
         <View style={styles.emptyContainer}>
           <Text style={[styles.emptyIcon]}>💬</Text>
@@ -68,6 +67,19 @@ export default function ChatList({
       windowSize={10}
       maxToRenderPerBatch={15}
       initialNumToRender={20}
+      onEndReached={() => {
+        if (hasNextPage) {
+          fetchNextPage();
+        }
+      }}
+      onEndReachedThreshold={0.5}
+      ListFooterComponent={
+        isFetchingNextPage ? (
+          <Text style={{ color: textColor, textAlign: "center", padding: 10 }}>
+            Loading....
+          </Text>
+        ) : null
+      }
     />
   );
 }

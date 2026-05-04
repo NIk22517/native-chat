@@ -100,5 +100,68 @@ export const useChatMsgSocket = ({ chat_id }: { chat_id: string }) => {
         );
       },
     );
+
+    socket.on(
+      "deleteMessage",
+      (eventData: {
+        action: "self" | "everyone" | "clear_chat";
+        chat_id: number;
+        deleted_by: number;
+        messages_ids: number[];
+      }) => {
+        if (Number(chat_id) !== eventData.chat_id) return;
+        const msg_id = new Set(eventData.messages_ids);
+        queryClient.setQueryData(
+          ["get_chat_messages", eventData.chat_id?.toString()],
+          (
+            old:
+              | {
+                  pageParams: (ChatMessagesParam | undefined)[];
+                  pages: ChatResponse[];
+                }
+              | undefined,
+          ) => {
+            if (eventData.action === "clear_chat") {
+              return {
+                pageParams: [undefined],
+                pages: [
+                  {
+                    data: [],
+                    paging: {
+                      has_newer: false,
+                      has_older: false,
+                      oldest_id: null,
+                      newest_id: null,
+                      limit: 0,
+                    },
+                  },
+                ],
+              };
+            }
+            if (old && Array.isArray(old.pages)) {
+              return {
+                ...old,
+                pages: old.pages.map((page) => ({
+                  ...page,
+                  data: page.data.map((el) => {
+                    if (msg_id.has(el.id)) {
+                      return {
+                        ...el,
+                        delete_action: eventData.action,
+                        delete_text:
+                          userId === eventData.deleted_by
+                            ? `You deleted this message ${eventData.action === "self" ? "" : "for everyone"}`
+                            : "This message is deleted by sender",
+                      };
+                    }
+                    return el;
+                  }),
+                })),
+              };
+            }
+          },
+        );
+      },
+    );
   }, [chat_id]);
 };

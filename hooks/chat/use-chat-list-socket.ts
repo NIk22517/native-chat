@@ -13,7 +13,6 @@ export const useChatListSocket = () => {
   useEffect(() => {
     if (!socket || !data) return;
     socket?.on("sendMessage", (eventdata) => {
-      console.log("list", eventdata);
       const updatedPages = data.pages.map((pageGroup) =>
         pageGroup.map((chatItem) => {
           if (chatItem.chat_id === eventdata.chat_id) {
@@ -55,6 +54,41 @@ export const useChatListSocket = () => {
             return chatItem;
           }),
         );
+        queryClient.setQueryData(["get_chat_list"], {
+          ...data,
+          pages: updatedPages,
+        });
+      },
+    );
+
+    socket.on(
+      "deleteMessage",
+      (eventData: {
+        action: "self" | "everyone" | "clear_chat";
+        chat_id: number;
+        deleted_by: number;
+        messages_ids: number[];
+      }) => {
+        const updatedPages = data.pages.map((pages) => {
+          return pages.map((el) => {
+            if (
+              eventData.chat_id === el.chat_id &&
+              eventData.messages_ids.some(
+                (ele) => el?.last_message?.message_id === ele,
+              )
+            ) {
+              return {
+                ...el,
+                last_message: {
+                  ...el.last_message,
+                  attachments: [],
+                  message: "This message is deleted",
+                },
+              };
+            }
+            return el;
+          });
+        });
         queryClient.setQueryData(["get_chat_list"], {
           ...data,
           pages: updatedPages,

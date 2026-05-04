@@ -1,6 +1,8 @@
 import { AttachmentType, ChatMessage } from "@/hooks/chat/use-chat-messages";
+import { useChatStore } from "@/store/useChatStore";
 import React, { memo } from "react";
 import { Dimensions, Image, StyleSheet, Text, View } from "react-native";
+import { SwipeableMessage } from "./swipeable-message";
 
 const { width: SCREEN_WIDTH } = Dimensions.get("window");
 const BUBBLE_MAX_WIDTH = SCREEN_WIDTH * 0.72;
@@ -196,58 +198,94 @@ const ChatMessageItem = ({
     return <SystemEventBubble msg={msg} />;
   }
 
+  const setReply = useChatStore((s) => s.setReply);
+  const toggleSelect = useChatStore((s) => s.toggleSelected);
+  const selectedMessage = useChatStore((s) => s.selected);
+
   const isMine = msg.sender_id === currentUserId;
   const isDeleted = !!msg.delete_action;
   const hasAttachments = msg.attachments && msg.attachments.length > 0;
   const hasText = !!msg.message;
   const hasReply = !!msg.reply_data;
 
-  return (
-    <View
-      style={[
-        styles.messageRow,
-        isMine ? styles.messageRowMine : styles.messageRowOther,
-      ]}
-    >
-      {!isMine && showSenderName && (
-        <Text style={styles.senderName}>{msg.sender_name}</Text>
-      )}
-
+  if (isDeleted) {
+    return (
       <View
         style={[
+          styles.messageRow,
+          isMine ? styles.messageRowMine : styles.messageRowOther,
           styles.bubble,
           isMine ? styles.bubbleMine : styles.bubbleOther,
           !hasText && !hasReply && hasAttachments && styles.bubbleMedia,
+          {
+            backgroundColor: "#f3eeee51",
+            ...(isMine ? { marginRight: 8 } : { marginLeft: 8 }),
+            marginTop: 4,
+          },
         ]}
       >
-        {/* Reply preview */}
-        {hasReply && <ReplyPreview reply={msg.reply_data!} isMine={isMine} />}
+        <Text style={styles.deletedText}>{msg.delete_text}</Text>
+      </View>
+    );
+  }
 
-        {/* Attachments */}
-        {hasAttachments && <AttachmentGrid attachments={msg.attachments!} />}
-
-        {hasText && (
-          <Text
-            style={[
-              styles.messageText,
-              isMine ? styles.messageTextMine : styles.messageTextOther,
-            ]}
-          >
-            {msg.message}
-          </Text>
+  return (
+    <SwipeableMessage
+      isSelected={selectedMessage.has(msg.id)}
+      isMine={isMine}
+      onReply={() => {
+        setReply(msg);
+      }}
+      onLongPress={() => {
+        toggleSelect(msg);
+      }}
+    >
+      <View
+        style={[
+          styles.messageRow,
+          isMine ? styles.messageRowMine : styles.messageRowOther,
+        ]}
+      >
+        {!isMine && showSenderName && (
+          <Text style={styles.senderName}>{msg.sender_name}</Text>
         )}
 
         <View
           style={[
-            styles.footer,
-            isMine ? styles.footerMine : styles.footerOther,
+            styles.bubble,
+            isMine ? styles.bubbleMine : styles.bubbleOther,
+            !hasText && !hasReply && hasAttachments && styles.bubbleMedia,
           ]}
         >
-          <Text style={styles.timeText}>{formatTime(msg.created_at)}</Text>
-          {isMine && <ReadTick status={msg.read_status} />}
+          {/* Reply preview */}
+          {hasReply && <ReplyPreview reply={msg.reply_data!} isMine={isMine} />}
+
+          {/* Attachments */}
+          {hasAttachments && <AttachmentGrid attachments={msg.attachments!} />}
+
+          {hasText && (
+            <Text
+              style={[
+                styles.messageText,
+                isMine ? styles.messageTextMine : styles.messageTextOther,
+              ]}
+            >
+              {msg.message}
+            </Text>
+          )}
+
+          <View
+            style={[
+              styles.footer,
+              isMine ? styles.footerMine : styles.footerOther,
+            ]}
+          >
+            <Text style={styles.timeText}>{formatTime(msg.created_at)}</Text>
+            {isMine && <ReadTick status={msg.read_status} />}
+          </View>
         </View>
       </View>
-    </View>
+    </SwipeableMessage>
   );
 };
 
