@@ -1,4 +1,5 @@
 import { useThemeColor } from "@/hooks/use-theme-color";
+import * as Haptics from "expo-haptics";
 import { useCallback } from "react";
 import { StyleSheet, View } from "react-native";
 import { Gesture, GestureDetector } from "react-native-gesture-handler";
@@ -39,6 +40,7 @@ export const SwipeableMessage = ({
   const longPressGesture = Gesture.LongPress()
     .minDuration(200)
     .onStart(() => {
+      runOnJS(Haptics.impactAsync)(Haptics.ImpactFeedbackStyle.Medium);
       runOnJS(onLongPress)();
     });
 
@@ -56,6 +58,7 @@ export const SwipeableMessage = ({
       const abs = Math.abs(translateX.value);
       if (abs >= SWIPE_THRESHOLD && !triggered.value) {
         triggered.value = true;
+        runOnJS(Haptics.impactAsync)(Haptics.ImpactFeedbackStyle.Light);
         runOnJS(triggerReply)();
       }
     })
