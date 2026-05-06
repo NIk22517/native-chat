@@ -28,6 +28,7 @@ import Animated, {
 } from "react-native-reanimated";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { ChatReply } from "./chat-reply";
+import { SendButton } from "./send-button";
 
 const { width: SW, height: SH } = Dimensions.get("window");
 
@@ -42,6 +43,8 @@ interface AttachmentPreviewProps {
   onRemove: (index: number) => void;
   onSend: (caption: string) => void;
   onAddMore: () => void;
+  onSchedule: (scheduledAt: Date, caption: string) => void;
+  canSend: boolean;
 }
 
 function DocPreview({ asset }: { asset: PickedAsset }) {
@@ -234,6 +237,8 @@ export function AttachmentPreviewScreen({
   onRemove,
   onSend,
   onAddMore,
+  onSchedule,
+  canSend,
 }: AttachmentPreviewProps) {
   const [caption, setCaption] = useState("");
   const thumbScrollRef = useRef<ScrollView>(null);
@@ -393,7 +398,7 @@ export function AttachmentPreviewScreen({
                   textAlignVertical="top"
                   maxLength={500}
                 />
-                <Pressable
+                {/* <Pressable
                   onPress={() => onSend(caption)}
                   style={({ pressed }) => [
                     s.sendBtn,
@@ -401,7 +406,14 @@ export function AttachmentPreviewScreen({
                   ]}
                 >
                   <Text style={s.sendIcon}>➤</Text>
-                </Pressable>
+                </Pressable> */}
+                <SendButton
+                  canSend={canSend}
+                  onPress={() => onSend(caption)}
+                  onSchedule={(scheduledAt) => {
+                    onSchedule(scheduledAt, caption);
+                  }}
+                />
               </View>
             </View>
           </View>

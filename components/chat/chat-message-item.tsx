@@ -1,7 +1,8 @@
-import { AttachmentType, ChatMessage } from "@/hooks/chat/use-chat-messages";
+import { ChatMessage } from "@/hooks/chat/use-chat-messages";
 import { useChatStore } from "@/store/useChatStore";
 import React, { memo } from "react";
 import { Dimensions, Image, StyleSheet, Text, View } from "react-native";
+import { MessageAttachments } from "./message-attachments";
 import { SwipeableMessage } from "./swipeable-message";
 
 const { width: SCREEN_WIDTH } = Dimensions.get("window");
@@ -91,83 +92,9 @@ const ReplyPreview = ({
   );
 };
 
-const AttachmentGrid = ({ attachments }: { attachments: AttachmentType[] }) => {
-  const images = attachments.filter((a) => a.resource_type === "image");
-  const videos = attachments.filter((a) => a.resource_type === "video");
-  const all = [...images, ...videos];
-
-  if (all.length === 0) return null;
-
-  const isSingle = all.length === 1;
-  const isDouble = all.length === 2;
-
-  return (
-    <View
-      style={[
-        styles.attachmentGrid,
-        isSingle && styles.attachmentGridSingle,
-        isDouble && styles.attachmentGridDouble,
-      ]}
-    >
-      {all.slice(0, 4).map((att, idx) => {
-        const isVideo = att.resource_type === "video";
-        const isLastAndMore = idx === 3 && attachments.length > 4;
-        const remaining = attachments.length - 4;
-
-        return (
-          <View
-            key={att.asset_id}
-            style={[
-              styles.attachmentCell,
-              isSingle && styles.attachmentCellSingle,
-              isDouble && styles.attachmentCellDouble,
-            ]}
-          >
-            <Image
-              source={{ uri: att.secure_url }}
-              style={styles.attachmentImage}
-              resizeMode="cover"
-            />
-            {isVideo && (
-              <View style={styles.videoOverlay}>
-                <View style={styles.playButton}>
-                  <Text style={styles.playIcon}>▶</Text>
-                </View>
-                {att.duration !== undefined && (
-                  <Text style={styles.videoDuration}>
-                    {Math.floor(att.duration / 60)}:
-                    {String(Math.floor(att.duration % 60)).padStart(2, "0")}
-                  </Text>
-                )}
-              </View>
-            )}
-            {isLastAndMore && (
-              <View style={styles.moreOverlay}>
-                <Text style={styles.moreText}>+{remaining + 1}</Text>
-              </View>
-            )}
-          </View>
-        );
-      })}
-    </View>
-  );
-};
-
 const ReadTick = ({ status }: { status: "read" | "unread" }) => (
   <Text style={[styles.tick, status === "read" && styles.tickRead]}>
     {status === "read" ? "✓✓" : "✓"}
-  </Text>
-);
-
-const DeletedMessage = ({
-  isMine,
-  text,
-}: {
-  isMine: boolean;
-  text: string;
-}) => (
-  <Text style={[styles.deletedText, { textAlign: isMine ? "right" : "left" }]}>
-    🚫 {text}
   </Text>
 );
 
@@ -261,7 +188,9 @@ const ChatMessageItem = ({
           {hasReply && <ReplyPreview reply={msg.reply_data!} isMine={isMine} />}
 
           {/* Attachments */}
-          {hasAttachments && <AttachmentGrid attachments={msg.attachments!} />}
+          {hasAttachments && (
+            <MessageAttachments attachments={msg.attachments!} />
+          )}
 
           {hasText && (
             <Text
@@ -354,6 +283,7 @@ const styles = StyleSheet.create({
     padding: 8,
     gap: 8,
     marginBottom: 2,
+    minWidth: 150,
   },
   replyPreviewMine: {
     backgroundColor: REPLY_MINE_BG,
@@ -422,12 +352,12 @@ const styles = StyleSheet.create({
   },
 
   // ── Video overlay ──
-  videoOverlay: {
-    ...StyleSheet.absoluteFillObject,
-    backgroundColor: "rgba(0,0,0,0.3)",
-    justifyContent: "center",
-    alignItems: "center",
-  },
+  // videoOverlay: {
+  //   ...StyleSheet.absoluteFillObject,
+  //   backgroundColor: "rgba(0,0,0,0.3)",
+  //   justifyContent: "center",
+  //   alignItems: "center",
+  // },
   playButton: {
     width: 44,
     height: 44,
@@ -454,17 +384,17 @@ const styles = StyleSheet.create({
   },
 
   // ── More overlay ──
-  moreOverlay: {
-    ...StyleSheet.absoluteFillObject,
-    backgroundColor: "rgba(0,0,0,0.55)",
-    justifyContent: "center",
-    alignItems: "center",
-  },
-  moreText: {
-    fontSize: 26,
-    fontWeight: "700",
-    color: "#fff",
-  },
+  // moreOverlay: {
+  //   ...StyleSheet.absoluteFillObject,
+  //   backgroundColor: "rgba(0,0,0,0.55)",
+  //   justifyContent: "center",
+  //   alignItems: "center",
+  // },
+  // moreText: {
+  //   fontSize: 26,
+  //   fontWeight: "700",
+  //   color: "#fff",
+  // },
 
   // ── Message text ──
   messageText: {
@@ -530,6 +460,78 @@ const styles = StyleSheet.create({
     fontSize: 12,
     color: TEXT_MUTED,
     textAlign: "center",
+  },
+
+  attachmentWrapper: {
+    gap: 4,
+  },
+
+  // ── Grid ──
+  grid: {
+    borderRadius: 14,
+    overflow: "hidden",
+    gap: 2,
+    width: BUBBLE_MAX_WIDTH, // ← lock width so cells fill predictably
+  },
+  gridRow: {
+    flexDirection: "row",
+    gap: 2,
+  },
+  cell: {
+    flex: 1, // ← fills equal share of the row width
+    position: "relative",
+    backgroundColor: "#111",
+  },
+  cellImage: {
+    width: "100%",
+    height: "100%",
+  },
+
+  // ── Video ──
+  videoOverlay: {
+    ...StyleSheet.absoluteFillObject,
+    justifyContent: "center",
+    alignItems: "center",
+    backgroundColor: "rgba(0,0,0,0.28)",
+  },
+
+  // ── More ──
+  moreOverlay: {
+    ...StyleSheet.absoluteFillObject,
+    justifyContent: "center",
+    alignItems: "center",
+    backgroundColor: "rgba(0,0,0,0.52)",
+  },
+  moreText: {
+    fontSize: 22,
+    fontWeight: "700",
+    color: "#fff",
+  },
+
+  // ── Files ──
+  fileList: {
+    gap: 4,
+    paddingTop: 2,
+  },
+  fileRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+    backgroundColor: "rgba(255,255,255,0.07)",
+    borderRadius: 10,
+    paddingHorizontal: 10,
+    paddingVertical: 8,
+  },
+  fileIcon: { fontSize: 20 },
+  fileMeta: { flex: 1, gap: 1 },
+  fileName: {
+    fontSize: 13,
+    fontWeight: "500",
+    color: "#EAEAEA",
+  },
+  fileSize: {
+    fontSize: 11,
+    color: "rgba(255,255,255,0.4)",
   },
 });
 

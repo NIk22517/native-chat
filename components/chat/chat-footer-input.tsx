@@ -1,3 +1,4 @@
+import { useScheduleMessage } from "@/hooks/chat/use-schedule-messages";
 import { useSendMessage } from "@/hooks/chat/use-send-message";
 import { useThemeColor } from "@/hooks/use-theme-color";
 import { useChatStore } from "@/store/useChatStore";
@@ -29,6 +30,7 @@ import {
   type PickedAsset,
 } from "./attachment-preview-screen";
 import { ChatReply } from "./chat-reply";
+import { SendButton } from "./send-button";
 
 interface AttachOptionProps {
   emoji: string;
@@ -88,9 +90,13 @@ export const ChatInput = ({ chat_id }: { chat_id: string }) => {
 
   const progress = useSharedValue(0);
   const { mutate, isPending } = useSendMessage();
+  const { mutate: scheduleMutate, isPending: isSchedulePending } =
+    useScheduleMessage();
 
   const canSend =
-    (message.trim().length > 0 || assets.length > 0) && !isPending;
+    (message.trim().length > 0 || assets.length > 0) &&
+    !isPending &&
+    !isSchedulePending;
 
   const openMenu = () => {
     Keyboard.dismiss();
@@ -217,6 +223,31 @@ export const ChatInput = ({ chat_id }: { chat_id: string }) => {
     );
   };
 
+  const handleSchedule = ({
+    message,
+    scheduledAt,
+  }: {
+    scheduledAt: Date;
+    message: string;
+  }) => {
+    scheduleMutate(
+      {
+        assets,
+        message,
+        chat_id,
+        scheduledAt,
+      },
+      {
+        onSuccess: () => {
+          setAssets([]);
+          setShowPreview(false);
+          setMessage("");
+          cancelReply();
+        },
+      },
+    );
+  };
+
   const ATTACH_OPTIONS = [
     { emoji: "📷", label: "Camera", color: "#FF6B6B", onPress: pickCamera },
     { emoji: "🖼️", label: "Photo", color: "#4ECDC4", onPress: pickImage },
@@ -228,6 +259,7 @@ export const ChatInput = ({ chat_id }: { chat_id: string }) => {
     <>
       {showPreview && assets.length > 0 && (
         <AttachmentPreviewScreen
+          canSend={canSend}
           assets={assets}
           initialIndex={previewIndex}
           onClose={() => {
@@ -237,6 +269,9 @@ export const ChatInput = ({ chat_id }: { chat_id: string }) => {
           onRemove={handleRemove}
           onSend={handleSend}
           onAddMore={handleAddMore}
+          onSchedule={(date, msg) => {
+            handleSchedule({ message: msg, scheduledAt: date });
+          }}
         />
       )}
 
@@ -301,23 +336,15 @@ export const ChatInput = ({ chat_id }: { chat_id: string }) => {
           maxLength={2000}
         />
 
-        <Pressable
-          onPress={() => handleSend(message)}
-          disabled={!canSend}
-          hitSlop={8}
-          style={({ pressed }) => [
-            styles.iconBtn,
-            styles.sendBtn,
-            canSend && styles.sendBtnActive,
-            pressed && canSend && styles.sendBtnPressed,
-          ]}
-        >
-          <IconSymbol
-            name="paperplane.fill"
-            size={16}
-            color={canSend ? "#fff" : borderColor}
-          />
-        </Pressable>
+        <SendButton
+          onPress={() => {
+            handleSend(message);
+          }}
+          canSend={canSend}
+          onSchedule={(scheduledAt) => {
+            handleSchedule({ message, scheduledAt });
+          }}
+        />
       </View>
     </>
   );
@@ -353,9 +380,9 @@ const styles = StyleSheet.create({
     marginBottom: 1,
   },
   iconBtnPressed: { opacity: 0.55 },
-  sendBtn: { backgroundColor: "transparent" },
-  sendBtnActive: { backgroundColor: "#0A7CFF" },
-  sendBtnPressed: { opacity: 0.75, transform: [{ scale: 0.91 }] },
+  // sendBtn: { backgroundColor: "transparent" },
+  // sendBtnActive: { backgroundColor: "#0A7CFF" },
+  // sendBtnPressed: { opacity: 0.75, transform: [{ scale: 0.91 }] },
   backdrop: {
     ...StyleSheet.absoluteFillObject,
     backgroundColor: "rgba(0,0,0,0.5)",

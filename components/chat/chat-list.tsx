@@ -2,7 +2,7 @@ import {
   useGetChatMessages,
   type ChatMessage,
 } from "@/hooks/chat/use-chat-messages";
-import React, { useRef } from "react";
+import React, { useCallback, useMemo, useRef } from "react";
 import { FlatList, StyleSheet, Text, View } from "react-native";
 import ChatMessageItem from "./chat-message-item";
 
@@ -26,16 +26,58 @@ export default function ChatList({
       chat_id,
     });
 
-  const shouldShowSenderName = (index: number, item: ChatMessage): boolean => {
-    if (!isGroupChat) return false;
-    if (item.message_type === "system") return false;
-    if (item.sender_id === currentUserId) return false;
-    const prev = allMessages[index - 1];
-    if (!prev || prev.sender_id !== item.sender_id) return true;
-    return false;
-  };
+  const allMessages = useMemo(
+    () => (data?.pages ?? []).flatMap((el) => el.data),
+    [data],
+  );
 
-  const allMessages = (data?.pages ?? []).flatMap((el) => el.data);
+  const shouldShowSenderName = useCallback(
+    (index: number, item: ChatMessage) => {
+      if (!isGroupChat) return false;
+      if (item.message_type === "system") return false;
+      if (item.sender_id === currentUserId) return false;
+
+      const prev = allMessages[index - 1];
+      return !prev || prev.sender_id !== item.sender_id;
+    },
+    [allMessages, currentUserId, isGroupChat],
+  );
+
+  const renderItem = useCallback(
+    ({ item, index }: { item: ChatMessage; index: number }) => (
+      <ChatMessageItem
+        msg={item}
+        currentUserId={currentUserId}
+        showSenderName={shouldShowSenderName(index, item)}
+      />
+    ),
+    [currentUserId, shouldShowSenderName],
+  );
+
+  const keyExtractor = useCallback(
+    (item: ChatMessage) => item.id.toString(),
+    [],
+  );
+
+  const handleEndReached = useCallback(() => {
+    if (hasNextPage && !isFetchingNextPage) {
+      fetchNextPage();
+    }
+  }, [hasNextPage, isFetchingNextPage, fetchNextPage]);
+
+  const listEmptyComponent = useCallback(() => {
+    return (
+      <View style={styles.emptyContainer}>
+        <Text style={[styles.emptyIcon]}>💬</Text>
+        <Text style={[styles.emptyTitle, { color: textColor }]}>
+          No messages yet
+        </Text>
+        <Text style={styles.emptySubtitle}>
+          Say hello and start the conversation
+        </Text>
+      </View>
+    );
+  }, []);
 
   return (
     <FlatList
@@ -43,35 +85,15 @@ export default function ChatList({
       ref={flatListRef}
       data={allMessages}
       contentContainerStyle={styles.contentContainer}
-      keyExtractor={(item) => item.id.toString()}
-      renderItem={({ item, index }) => (
-        <ChatMessageItem
-          msg={item}
-          currentUserId={currentUserId}
-          showSenderName={shouldShowSenderName(index, item)}
-        />
-      )}
+      keyExtractor={keyExtractor}
+      renderItem={renderItem}
       inverted={allMessages.length > 0}
-      ListEmptyComponent={() => (
-        <View style={styles.emptyContainer}>
-          <Text style={[styles.emptyIcon]}>💬</Text>
-          <Text style={[styles.emptyTitle, { color: textColor }]}>
-            No messages yet
-          </Text>
-          <Text style={styles.emptySubtitle}>
-            Say hello and start the conversation
-          </Text>
-        </View>
-      )}
+      ListEmptyComponent={listEmptyComponent}
       removeClippedSubviews={true}
       windowSize={10}
       maxToRenderPerBatch={15}
       initialNumToRender={20}
-      onEndReached={() => {
-        if (hasNextPage) {
-          fetchNextPage();
-        }
-      }}
+      onEndReached={handleEndReached}
       onEndReachedThreshold={0.5}
       ListFooterComponent={
         isFetchingNextPage ? (

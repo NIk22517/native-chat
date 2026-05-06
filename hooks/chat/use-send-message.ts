@@ -9,7 +9,7 @@ type UploadFile = {
   type: string;
 };
 
-function toUploadFile(asset: PickedAsset): UploadFile {
+export function toUploadFile(asset: PickedAsset): UploadFile {
   if (asset.kind === "media") {
     return {
       uri: asset.uri,
