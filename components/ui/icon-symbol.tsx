@@ -25,6 +25,8 @@ const MAPPING = {
   "arrowshape.turn.up.right.fill": "reply-all",
   "trash.fill": "delete",
   xmark: "close",
+  "video.and.waveform.fill": "videocam",
+  document: "document-scanner",
 } as IconMapping;
 
 /**

@@ -1,8 +1,9 @@
 import { ChatMessage } from "@/hooks/chat/use-chat-messages";
 import { useChatStore } from "@/store/useChatStore";
 import React, { memo } from "react";
-import { Dimensions, Image, StyleSheet, Text, View } from "react-native";
+import { Dimensions, StyleSheet, Text, View } from "react-native";
 import { MessageAttachments } from "./message-attachments";
+import { MessageReplyPreview } from "./message-reply-preview";
 import { SwipeableMessage } from "./swipeable-message";
 
 const { width: SCREEN_WIDTH } = Dimensions.get("window");
@@ -42,55 +43,6 @@ function systemEventText(msg: ChatMessage): string {
 }
 
 // ─── Sub-components ──────────────────────────────────────────────────────────
-
-const ReplyPreview = ({
-  reply,
-  isMine,
-}: {
-  reply: NonNullable<ChatMessage["reply_data"]>;
-  isMine: boolean;
-}) => {
-  const hasImage =
-    reply.attachments?.some((a) => a.resource_type === "image") ?? false;
-  const firstImage = reply.attachments?.find(
-    (a) => a.resource_type === "image",
-  );
-
-  return (
-    <View
-      style={[
-        styles.replyPreview,
-        isMine ? styles.replyPreviewMine : styles.replyPreviewOther,
-      ]}
-    >
-      <View style={styles.replyBar} />
-      <View style={{ flex: 1, gap: 2 }}>
-        <Text style={styles.replySenderName} numberOfLines={1}>
-          {reply.sender_name}
-        </Text>
-        {firstImage ? (
-          <View style={styles.replyImageRow}>
-            <Image
-              source={{ uri: firstImage.secure_url }}
-              style={styles.replyThumb}
-            />
-            {reply.message ? (
-              <Text style={styles.replyText} numberOfLines={1}>
-                {reply.message}
-              </Text>
-            ) : (
-              <Text style={styles.replyTextMuted}>Photo</Text>
-            )}
-          </View>
-        ) : (
-          <Text style={styles.replyText} numberOfLines={2}>
-            {reply.message || "Attachment"}
-          </Text>
-        )}
-      </View>
-    </View>
-  );
-};
 
 const ReadTick = ({ status }: { status: "read" | "unread" }) => (
   <Text style={[styles.tick, status === "read" && styles.tickRead]}>
@@ -184,8 +136,9 @@ const ChatMessageItem = ({
             !hasText && !hasReply && hasAttachments && styles.bubbleMedia,
           ]}
         >
-          {/* Reply preview */}
-          {hasReply && <ReplyPreview reply={msg.reply_data!} isMine={isMine} />}
+          {hasReply && (
+            <MessageReplyPreview reply={msg.reply_data!} isMine={isMine} />
+          )}
 
           {/* Attachments */}
           {hasAttachments && (
@@ -222,12 +175,8 @@ const ChatMessageItem = ({
 
 const MINE_BG = "#0A7CFF";
 const OTHER_BG = "#2A2A2E";
-const REPLY_MINE_BG = "rgba(255,255,255,0.12)";
-const REPLY_OTHER_BG = "rgba(255,255,255,0.07)";
 const SYSTEM_BG = "rgba(255,255,255,0.08)";
-const TEXT_PRIMARY = "#FFFFFF";
 const TEXT_MUTED = "rgba(255,255,255,0.45)";
-const REPLY_BAR_COLOR = "#FFD60A";
 
 const styles = StyleSheet.create({
   // ── Rows ──
@@ -276,126 +225,6 @@ const styles = StyleSheet.create({
     paddingVertical: 0,
   },
 
-  // ── Reply preview ──
-  replyPreview: {
-    flexDirection: "row",
-    borderRadius: 10,
-    padding: 8,
-    gap: 8,
-    marginBottom: 2,
-    minWidth: 150,
-  },
-  replyPreviewMine: {
-    backgroundColor: REPLY_MINE_BG,
-  },
-  replyPreviewOther: {
-    backgroundColor: REPLY_OTHER_BG,
-  },
-  replyBar: {
-    width: 3,
-    borderRadius: 2,
-    backgroundColor: REPLY_BAR_COLOR,
-    alignSelf: "stretch",
-  },
-  replySenderName: {
-    fontSize: 12,
-    fontWeight: "700",
-    color: REPLY_BAR_COLOR,
-  },
-  replyText: {
-    fontSize: 12.5,
-    color: "rgba(255,255,255,0.75)",
-    flexShrink: 1,
-  },
-  replyTextMuted: {
-    fontSize: 12.5,
-    color: TEXT_MUTED,
-    fontStyle: "italic",
-  },
-  replyImageRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 6,
-  },
-  replyThumb: {
-    width: 36,
-    height: 36,
-    borderRadius: 6,
-  },
-
-  // ── Attachments ──
-  attachmentGrid: {
-    flexDirection: "row",
-    flexWrap: "wrap",
-    gap: 2,
-    borderRadius: 14,
-    overflow: "hidden",
-  },
-  attachmentGridSingle: {},
-  attachmentGridDouble: {},
-  attachmentCell: {
-    width: (BUBBLE_MAX_WIDTH - 4) / 2,
-    height: (BUBBLE_MAX_WIDTH - 4) / 2,
-    position: "relative",
-  },
-  attachmentCellSingle: {
-    width: BUBBLE_MAX_WIDTH,
-    height: BUBBLE_MAX_WIDTH * 0.75,
-  },
-  attachmentCellDouble: {
-    width: (BUBBLE_MAX_WIDTH - 2) / 2,
-    height: (BUBBLE_MAX_WIDTH - 2) / 2,
-  },
-  attachmentImage: {
-    width: "100%",
-    height: "100%",
-  },
-
-  // ── Video overlay ──
-  // videoOverlay: {
-  //   ...StyleSheet.absoluteFillObject,
-  //   backgroundColor: "rgba(0,0,0,0.3)",
-  //   justifyContent: "center",
-  //   alignItems: "center",
-  // },
-  playButton: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
-    backgroundColor: "rgba(255,255,255,0.85)",
-    justifyContent: "center",
-    alignItems: "center",
-  },
-  playIcon: {
-    fontSize: 16,
-    color: "#000",
-    marginLeft: 3,
-  },
-  videoDuration: {
-    position: "absolute",
-    bottom: 6,
-    right: 8,
-    fontSize: 11,
-    color: "#fff",
-    fontWeight: "600",
-    textShadowColor: "rgba(0,0,0,0.6)",
-    textShadowOffset: { width: 0, height: 1 },
-    textShadowRadius: 2,
-  },
-
-  // ── More overlay ──
-  // moreOverlay: {
-  //   ...StyleSheet.absoluteFillObject,
-  //   backgroundColor: "rgba(0,0,0,0.55)",
-  //   justifyContent: "center",
-  //   alignItems: "center",
-  // },
-  // moreText: {
-  //   fontSize: 26,
-  //   fontWeight: "700",
-  //   color: "#fff",
-  // },
-
   // ── Message text ──
   messageText: {
     fontSize: 15.5,
@@ -429,10 +258,14 @@ const styles = StyleSheet.create({
   footerOther: {
     justifyContent: "flex-start",
   },
+
+  //time
   timeText: {
     fontSize: 10.5,
     color: TEXT_MUTED,
   },
+
+  //msg read
   tick: {
     fontSize: 11,
     color: "rgba(255,255,255,0.4)",
@@ -460,78 +293,6 @@ const styles = StyleSheet.create({
     fontSize: 12,
     color: TEXT_MUTED,
     textAlign: "center",
-  },
-
-  attachmentWrapper: {
-    gap: 4,
-  },
-
-  // ── Grid ──
-  grid: {
-    borderRadius: 14,
-    overflow: "hidden",
-    gap: 2,
-    width: BUBBLE_MAX_WIDTH, // ← lock width so cells fill predictably
-  },
-  gridRow: {
-    flexDirection: "row",
-    gap: 2,
-  },
-  cell: {
-    flex: 1, // ← fills equal share of the row width
-    position: "relative",
-    backgroundColor: "#111",
-  },
-  cellImage: {
-    width: "100%",
-    height: "100%",
-  },
-
-  // ── Video ──
-  videoOverlay: {
-    ...StyleSheet.absoluteFillObject,
-    justifyContent: "center",
-    alignItems: "center",
-    backgroundColor: "rgba(0,0,0,0.28)",
-  },
-
-  // ── More ──
-  moreOverlay: {
-    ...StyleSheet.absoluteFillObject,
-    justifyContent: "center",
-    alignItems: "center",
-    backgroundColor: "rgba(0,0,0,0.52)",
-  },
-  moreText: {
-    fontSize: 22,
-    fontWeight: "700",
-    color: "#fff",
-  },
-
-  // ── Files ──
-  fileList: {
-    gap: 4,
-    paddingTop: 2,
-  },
-  fileRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 8,
-    backgroundColor: "rgba(255,255,255,0.07)",
-    borderRadius: 10,
-    paddingHorizontal: 10,
-    paddingVertical: 8,
-  },
-  fileIcon: { fontSize: 20 },
-  fileMeta: { flex: 1, gap: 1 },
-  fileName: {
-    fontSize: 13,
-    fontWeight: "500",
-    color: "#EAEAEA",
-  },
-  fileSize: {
-    fontSize: 11,
-    color: "rgba(255,255,255,0.4)",
   },
 });
 
