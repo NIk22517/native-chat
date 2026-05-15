@@ -1,7 +1,7 @@
 import { useAuthStore } from "@/store/authStore";
 import { useSocketStore } from "@/store/socketStore";
 import { useQueryClient } from "@tanstack/react-query";
-import { useEffect } from "react";
+import { useEffect, useRef } from "react";
 import { useGetChatList } from "./use-chat-list";
 
 export const useChatListSocket = () => {
@@ -10,21 +10,30 @@ export const useChatListSocket = () => {
   const queryClient = useQueryClient();
   const { data } = useGetChatList();
 
+  const dataRef = useRef(data);
   useEffect(() => {
-    if (!socket || !data) return;
-    socket?.on("sendMessage", (eventdata) => {
-      const updatedPages = data.pages.map((pageGroup) =>
+    dataRef.current = data;
+  }, [data]);
+
+  useEffect(() => {
+    if (!socket) return;
+
+    socket.on("sendMessage", (eventData) => {
+      const currentData = dataRef.current;
+      if (!currentData) return;
+
+      const updatedPages = currentData.pages.map((pageGroup) =>
         pageGroup.map((chatItem) => {
-          if (chatItem.chat_id === eventdata.chat_id) {
+          if (chatItem.chat_id === eventData.chat_id) {
             return {
               ...chatItem,
               last_message: {
-                attachments: eventdata.attachments,
-                created_at: eventdata.created_at,
-                message: eventdata.message,
+                attachments: eventData.attachments,
+                created_at: eventData.created_at,
+                message: eventData.message,
               },
               unread_count:
-                userId === eventdata.sender_id
+                userId === eventData.sender_id
                   ? chatItem.unread_count
                   : Number(chatItem.unread_count) + 1,
             };
@@ -34,7 +43,7 @@ export const useChatListSocket = () => {
       );
 
       queryClient.setQueryData(["get_chat_list"], {
-        ...data,
+        ...currentData,
         pages: updatedPages,
       });
     });
@@ -42,20 +51,21 @@ export const useChatListSocket = () => {
     socket.on(
       "markReadMessage",
       (eventData: { chat_id: number; seen_by: number }) => {
+        const currentData = dataRef.current;
+        if (!currentData) return;
         if (userId !== eventData.seen_by) return;
-        const updatedPages = data.pages.map((pageGroup) =>
+
+        const updatedPages = currentData.pages.map((pageGroup) =>
           pageGroup.map((chatItem) => {
             if (chatItem.chat_id === eventData.chat_id) {
-              return {
-                ...chatItem,
-                unread_count: "0",
-              };
+              return { ...chatItem, unread_count: "0" };
             }
             return chatItem;
           }),
         );
+
         queryClient.setQueryData(["get_chat_list"], {
-          ...data,
+          ...currentData,
           pages: updatedPages,
         });
       },
@@ -69,31 +79,41 @@ export const useChatListSocket = () => {
         deleted_by: number;
         messages_ids: number[];
       }) => {
-        const updatedPages = data.pages.map((pages) => {
-          return pages.map((el) => {
+        const currentData = dataRef.current;
+        if (!currentData) return;
+
+        const updatedPages = currentData.pages.map((pageGroup) =>
+          pageGroup.map((chatItem) => {
             if (
-              eventData.chat_id === el.chat_id &&
+              eventData.chat_id === chatItem.chat_id &&
               eventData.messages_ids.some(
-                (ele) => el?.last_message?.message_id === ele,
+                (id) => chatItem?.last_message?.message_id === id,
               )
             ) {
               return {
-                ...el,
+                ...chatItem,
                 last_message: {
-                  ...el.last_message,
+                  ...chatItem.last_message,
                   attachments: [],
                   message: "This message is deleted",
                 },
               };
             }
-            return el;
-          });
-        });
+            return chatItem;
+          }),
+        );
+
         queryClient.setQueryData(["get_chat_list"], {
-          ...data,
+          ...currentData,
           pages: updatedPages,
         });
       },
     );
-  }, [data]);
+
+    return () => {
+      socket.off("sendMessage");
+      socket.off("markReadMessage");
+      socket.off("deleteMessage");
+    };
+  }, [socket, userId]);
 };

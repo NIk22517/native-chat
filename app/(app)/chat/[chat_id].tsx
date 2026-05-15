@@ -8,6 +8,7 @@ import {
   type SingleChatListType,
 } from "@/hooks/chat/use-chat-list";
 import { useChatMsgSocket } from "@/hooks/chat/use-chat-msg-socket";
+import { useDismissChatNotifications } from "@/hooks/use-push-notifications";
 import { useThemeColor } from "@/hooks/use-theme-color";
 import { useAuthStore } from "@/store/authStore";
 import { useChatStore } from "@/store/useChatStore";
@@ -58,6 +59,8 @@ export default function ChatMessage() {
   useChatMsgSocket({
     chat_id,
   });
+
+  useDismissChatNotifications(Number(chat_id));
 
   const selected = useChatStore((s) => s.selected);
   const clearSelection = useChatStore((s) => s.clearSelection);

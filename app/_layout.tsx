@@ -35,8 +35,6 @@ export default function RootLayout() {
     return null;
   }
 
-  console.log(token, "token");
-
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
       <SafeAreaProvider>

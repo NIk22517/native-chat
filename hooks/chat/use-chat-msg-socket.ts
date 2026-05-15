@@ -1,7 +1,7 @@
 import { useAuthStore } from "@/store/authStore";
 import { useSocketStore } from "@/store/socketStore";
 import { useQueryClient } from "@tanstack/react-query";
-import { useEffect } from "react";
+import { useEffect, useRef } from "react";
 import { useMarkReadChat } from "./use-chat-list";
 import type { ChatMessagesParam, ChatResponse } from "./use-chat-messages";
 
@@ -10,10 +10,23 @@ export const useChatMsgSocket = ({ chat_id }: { chat_id: string }) => {
   const userId = useAuthStore((state) => state.user?.id);
   const queryClient = useQueryClient();
   const { mutate: mutateReadMsg } = useMarkReadChat();
+
+  const chatIdRef = useRef(chat_id);
+  const userIdRef = useRef(userId);
+
+  useEffect(() => {
+    chatIdRef.current = chat_id;
+  }, [chat_id]);
+  useEffect(() => {
+    userIdRef.current = userId;
+  }, [userId]);
+
   useEffect(() => {
     if (!socket) return;
-    socket.on("sendMessage", (eventdata) => {
-      if (Number(chat_id) !== eventdata.chat_id) return;
+
+    const handleSendMessage = (eventdata: any) => {
+      if (Number(chatIdRef.current) !== eventdata.chat_id) return;
+
       queryClient.setQueryData(
         ["get_chat_messages", eventdata.chat_id?.toString()],
         (
@@ -56,112 +69,118 @@ export const useChatMsgSocket = ({ chat_id }: { chat_id: string }) => {
         },
       );
 
-      if (eventdata.sender_id !== userId) {
-        mutateReadMsg({
-          chat_id: eventdata.chat_id,
-        });
+      if (eventdata.sender_id !== userIdRef.current) {
+        mutateReadMsg({ chat_id: eventdata.chat_id });
       }
-    });
+    };
 
-    socket.on(
-      "markReadMessage",
-      (eventData: { chat_id: number; seen_by: number }) => {
-        if (
-          userId === eventData.seen_by ||
-          Number(chat_id) !== eventData.chat_id
-        )
-          return;
+    const handleMarkRead = (eventData: {
+      chat_id: number;
+      seen_by: number;
+    }) => {
+      if (
+        userIdRef.current === eventData.seen_by ||
+        Number(chatIdRef.current) !== eventData.chat_id
+      )
+        return;
 
-        queryClient.setQueryData(
-          ["get_chat_messages", eventData.chat_id?.toString()],
-          (
-            old:
-              | {
-                  pageParams: (ChatMessagesParam | undefined)[];
-                  pages: ChatResponse[];
-                }
-              | undefined,
-          ) => {
-            if (old && Array.isArray(old.pages)) {
-              return {
-                ...old,
-                pages: old.pages.map((page) => ({
-                  ...page,
-                  data: page.data.map((el) => {
+      queryClient.setQueryData(
+        ["get_chat_messages", eventData.chat_id?.toString()],
+        (
+          old:
+            | {
+                pageParams: (ChatMessagesParam | undefined)[];
+                pages: ChatResponse[];
+              }
+            | undefined,
+        ) => {
+          if (old && Array.isArray(old.pages)) {
+            return {
+              ...old,
+              pages: old.pages.map((page) => ({
+                ...page,
+                data: page.data.map((el) => ({
+                  ...el,
+                  read_status: "read",
+                })),
+              })),
+            };
+          }
+        },
+      );
+    };
+
+    const handleDeleteMessage = (eventData: {
+      action: "self" | "everyone" | "clear_chat";
+      chat_id: number;
+      deleted_by: number;
+      messages_ids: number[];
+    }) => {
+      if (Number(chatIdRef.current) !== eventData.chat_id) return;
+
+      const msg_id = new Set(eventData.messages_ids);
+
+      queryClient.setQueryData(
+        ["get_chat_messages", eventData.chat_id?.toString()],
+        (
+          old:
+            | {
+                pageParams: (ChatMessagesParam | undefined)[];
+                pages: ChatResponse[];
+              }
+            | undefined,
+        ) => {
+          if (eventData.action === "clear_chat") {
+            return {
+              pageParams: [undefined],
+              pages: [
+                {
+                  data: [],
+                  paging: {
+                    has_newer: false,
+                    has_older: false,
+                    oldest_id: null,
+                    newest_id: null,
+                    limit: 0,
+                  },
+                },
+              ],
+            };
+          }
+
+          if (old && Array.isArray(old.pages)) {
+            return {
+              ...old,
+              pages: old.pages.map((page) => ({
+                ...page,
+                data: page.data.map((el) => {
+                  if (msg_id.has(el.id)) {
                     return {
                       ...el,
-                      read_status: "read",
+                      delete_action: eventData.action,
+                      delete_text:
+                        userIdRef.current === eventData.deleted_by
+                          ? `You deleted this message ${eventData.action === "self" ? "" : "for everyone"}`
+                          : "This message is deleted by sender",
                     };
-                  }),
-                })),
-              };
-            }
-          },
-        );
-      },
-    );
+                  }
+                  return el;
+                }),
+              })),
+            };
+          }
+        },
+      );
+    };
 
-    socket.on(
-      "deleteMessage",
-      (eventData: {
-        action: "self" | "everyone" | "clear_chat";
-        chat_id: number;
-        deleted_by: number;
-        messages_ids: number[];
-      }) => {
-        if (Number(chat_id) !== eventData.chat_id) return;
-        const msg_id = new Set(eventData.messages_ids);
-        queryClient.setQueryData(
-          ["get_chat_messages", eventData.chat_id?.toString()],
-          (
-            old:
-              | {
-                  pageParams: (ChatMessagesParam | undefined)[];
-                  pages: ChatResponse[];
-                }
-              | undefined,
-          ) => {
-            if (eventData.action === "clear_chat") {
-              return {
-                pageParams: [undefined],
-                pages: [
-                  {
-                    data: [],
-                    paging: {
-                      has_newer: false,
-                      has_older: false,
-                      oldest_id: null,
-                      newest_id: null,
-                      limit: 0,
-                    },
-                  },
-                ],
-              };
-            }
-            if (old && Array.isArray(old.pages)) {
-              return {
-                ...old,
-                pages: old.pages.map((page) => ({
-                  ...page,
-                  data: page.data.map((el) => {
-                    if (msg_id.has(el.id)) {
-                      return {
-                        ...el,
-                        delete_action: eventData.action,
-                        delete_text:
-                          userId === eventData.deleted_by
-                            ? `You deleted this message ${eventData.action === "self" ? "" : "for everyone"}`
-                            : "This message is deleted by sender",
-                      };
-                    }
-                    return el;
-                  }),
-                })),
-              };
-            }
-          },
-        );
-      },
-    );
-  }, [chat_id]);
+    socket.on("sendMessage", handleSendMessage);
+    socket.on("markReadMessage", handleMarkRead);
+    socket.on("deleteMessage", handleDeleteMessage);
+
+    return () => {
+      socket.off("sendMessage", handleSendMessage);
+      socket.off("markReadMessage", handleMarkRead);
+      socket.off("deleteMessage", handleDeleteMessage);
+    };
+  }, [socket]);
 };
