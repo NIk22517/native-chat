@@ -27,6 +27,10 @@ const MAPPING = {
   xmark: "close",
   "video.and.waveform.fill": "videocam",
   document: "document-scanner",
+  "info.circle": "info-outline",
+  backward: "arrow-back",
+  "checkmark.circle.fill": "done",
+  "checkmark.message.fill": "done-all",
 } as IconMapping;
 
 /**

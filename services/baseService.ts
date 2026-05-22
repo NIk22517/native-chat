@@ -11,7 +11,7 @@ export interface AuthInfo {
 
 export class BaseService {
   protected instance: AxiosInstance;
-  private readonly baseURL: string = "http://192.168.1.38:8080/";
+  private readonly baseURL: string = "http://192.168.1.33:8080/";
 
   constructor() {
     this.instance = axios.create({

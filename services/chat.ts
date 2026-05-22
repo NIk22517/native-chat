@@ -167,4 +167,18 @@ export class ChatServices extends BaseService {
       params: values.query,
     });
   };
+
+  messageStatus = (
+    values: AuthInfo & {
+      chat_id: string;
+      message_id: string;
+    },
+  ) => {
+    return this.instance.get(
+      `/chat/read-status/${values.chat_id}/${values.message_id}`,
+      {
+        ...this.buildConfig({ auth: values }),
+      },
+    );
+  };
 }

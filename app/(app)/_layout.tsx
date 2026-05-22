@@ -1,6 +1,6 @@
-import { useInAppNotification } from "@/hooks/use-in-app-notification";
-import { useNotificationHandler } from "@/hooks/use-notification-handler";
-import { usePushNotifications } from "@/hooks/use-push-notifications";
+// import { useInAppNotification } from "@/hooks/use-in-app-notification";
+// import { useNotificationHandler } from "@/hooks/use-notification-handler";
+// import { usePushNotifications } from "@/hooks/use-push-notifications";
 import { useAuthStore } from "@/store/authStore";
 import { useSocketStore } from "@/store/socketStore";
 import { Stack } from "expo-router";
@@ -17,9 +17,9 @@ export default function AppLayout() {
       socketDisconnect();
     };
   }, [token]);
-  useNotificationHandler();
-  usePushNotifications();
-  useInAppNotification();
+  // useNotificationHandler();
+  // usePushNotifications();
+  // useInAppNotification();
   return (
     <Stack screenOptions={{ headerShown: false }}>
       <Stack.Screen name="chat" />

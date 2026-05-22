@@ -13,7 +13,7 @@ import { useThemeColor } from "@/hooks/use-theme-color";
 import { useAuthStore } from "@/store/authStore";
 import { useChatStore } from "@/store/useChatStore";
 import { useHeaderHeight } from "@react-navigation/elements";
-import { Stack, useLocalSearchParams } from "expo-router";
+import { router, Stack, useLocalSearchParams } from "expo-router";
 import { useEffect } from "react";
 import { KeyboardAvoidingView, Platform, Pressable, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
@@ -95,8 +95,30 @@ export default function ChatMessage() {
           headerRight: isSelected
             ? () => {
                 return (
-                  <View>
+                  <View style={{ flexDirection: "row", gap: 20 }}>
                     <DeleteMessage />
+                    {selected.size === 1 && (
+                      <Pressable
+                        hitSlop={12}
+                        onPress={() => {
+                          const message_id = Array.from(selected.keys())[0];
+                          if (!message_id) return;
+                          router.push({
+                            pathname: "/chat/msg-status/[chat_id]/[message_id]",
+                            params: {
+                              chat_id,
+                              message_id,
+                            },
+                          });
+                        }}
+                      >
+                        <IconSymbol
+                          name="info.circle"
+                          color={textColor}
+                          size={20}
+                        />
+                      </Pressable>
+                    )}
                   </View>
                 );
               }

@@ -19,7 +19,7 @@ export const useSocketStore = create<SocketState>((set, get) => ({
       existing.disconnect();
     }
 
-    const socket = io("ws://192.168.1.38:8080", {
+    const socket = io("ws://192.168.1.33:8080", {
       auth: { token },
       transports: ["websocket"],
       reconnection: true,

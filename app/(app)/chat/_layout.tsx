@@ -31,6 +31,12 @@ export default function ChatLayout() {
           headerShown: true,
         }}
       />
+      <Stack.Screen
+        name="msg-status/[chat_id]/[message_id]"
+        options={{
+          headerShown: true,
+        }}
+      />
     </Stack>
   );
 }
