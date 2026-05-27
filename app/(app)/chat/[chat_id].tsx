@@ -8,14 +8,24 @@ import {
   type SingleChatListType,
 } from "@/hooks/chat/use-chat-list";
 import { useChatMsgSocket } from "@/hooks/chat/use-chat-msg-socket";
+import { useSearchMessages } from "@/hooks/chat/use-search-chat-messages";
+import { useDebounce } from "@/hooks/use-debounce";
 import { useDismissChatNotifications } from "@/hooks/use-push-notifications";
 import { useThemeColor } from "@/hooks/use-theme-color";
 import { useAuthStore } from "@/store/authStore";
 import { useChatStore } from "@/store/useChatStore";
 import { useHeaderHeight } from "@react-navigation/elements";
 import { router, Stack, useLocalSearchParams } from "expo-router";
-import { useEffect } from "react";
-import { KeyboardAvoidingView, Platform, Pressable, View } from "react-native";
+import { useEffect, useState } from "react";
+import {
+  ActivityIndicator,
+  KeyboardAvoidingView,
+  Platform,
+  Pressable,
+  Text,
+  TextInput,
+  View,
+} from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 export default function ChatMessage() {
@@ -23,7 +33,9 @@ export default function ChatMessage() {
   const { chat_id } = useLocalSearchParams<{
     chat_id: string;
   }>();
-
+  const [openSearch, setOpenSearch] = useState(false);
+  const [searchText, setSearchText] = useState("");
+  const [currentResultIndex, setCurrentResultIndex] = useState(0);
   const { data: listData } = useGetSingleChatList({
     chat_id,
   });
@@ -32,6 +44,9 @@ export default function ChatMessage() {
 
   const textColor = useThemeColor({}, "text");
   const backgroundColor = useThemeColor({}, "background");
+  const secondaryBg = useThemeColor({}, "surface");
+  const mutedColor = useThemeColor({}, "textMuted");
+  const borderColor = useThemeColor({}, "border");
 
   const insets = useSafeAreaInsets();
   const headerHeight = useHeaderHeight();
@@ -66,10 +81,35 @@ export default function ChatMessage() {
   const clearSelection = useChatStore((s) => s.clearSelection);
   const isSelected = selected.size > 0;
 
+  const debounceSearchText = useDebounce(searchText);
+
+  const { data: searchData, isLoading: isSearching } = useSearchMessages({
+    chat_id,
+    search_text: debounceSearchText,
+  });
+
+  const searchResultIds =
+    searchData?.pages?.flatMap((el) => el.data).map((el) => el.id) ?? [];
+
+  const totalResults = searchResultIds.length;
+  const activeMessageId =
+    openSearch && totalResults
+      ? (searchResultIds[currentResultIndex] ?? null)
+      : null;
+
+  const handlePrev = () => {
+    setCurrentResultIndex((i) => Math.max(0, i - 1));
+  };
+
+  const handleNext = () => {
+    setCurrentResultIndex((i) => Math.min(totalResults - 1, i + 1));
+  };
+
   return (
     <>
       <Stack.Screen
         options={{
+          headerShown: !openSearch,
           title: isSelected ? `${selected.size}` : getChatName(listData),
           headerStyle: {
             backgroundColor,
@@ -122,7 +162,19 @@ export default function ChatMessage() {
                   </View>
                 );
               }
-            : undefined,
+            : !openSearch
+              ? () => {
+                  return (
+                    <Pressable hitSlop={12} onPress={() => setOpenSearch(true)}>
+                      <IconSymbol
+                        name="magnifyingglass"
+                        color={textColor}
+                        size={20}
+                      />
+                    </Pressable>
+                  );
+                }
+              : undefined,
         }}
       />
 
@@ -137,11 +189,101 @@ export default function ChatMessage() {
             backgroundColor,
           }}
         >
+          {openSearch && (
+            <View
+              style={{
+                flexDirection: "row",
+                alignItems: "center",
+                paddingHorizontal: 12,
+                paddingVertical: 8,
+                paddingTop: insets.top + 8,
+                gap: 8,
+                backgroundColor,
+                borderBottomWidth: 0.5,
+                borderBottomColor: borderColor,
+              }}
+            >
+              <Pressable
+                hitSlop={12}
+                onPress={() => {
+                  setOpenSearch(false);
+                  setSearchText("");
+                }}
+              >
+                <IconSymbol name="xmark" size={18} color={mutedColor} />
+              </Pressable>
+
+              <TextInput
+                autoFocus
+                value={searchText}
+                onChangeText={setSearchText}
+                placeholder="Search messages..."
+                placeholderTextColor={mutedColor}
+                style={{
+                  flex: 1,
+                  backgroundColor: secondaryBg,
+                  borderRadius: 10,
+                  paddingVertical: 7,
+                  paddingHorizontal: 12,
+                  fontSize: 15,
+                  color: textColor,
+                }}
+                returnKeyType="search"
+              />
+
+              {isSearching && debounceSearchText.length >= 2 ? (
+                <ActivityIndicator size="small" />
+              ) : debounceSearchText.length >= 2 ? (
+                <Text
+                  style={{
+                    fontSize: 12,
+                    color: mutedColor,
+                    minWidth: 50,
+                    textAlign: "center",
+                  }}
+                >
+                  {totalResults === 0
+                    ? "No results"
+                    : `${currentResultIndex + 1} of ${totalResults}`}
+                </Text>
+              ) : null}
+
+              <Pressable
+                hitSlop={12}
+                onPress={handlePrev}
+                disabled={totalResults === 0 || currentResultIndex === 0}
+                style={{
+                  opacity:
+                    totalResults === 0 || currentResultIndex === 0 ? 0.3 : 1,
+                }}
+              >
+                <IconSymbol name="chevron.up" size={20} color={textColor} />
+              </Pressable>
+
+              <Pressable
+                hitSlop={12}
+                onPress={handleNext}
+                disabled={
+                  totalResults === 0 || currentResultIndex === totalResults - 1
+                }
+                style={{
+                  opacity:
+                    totalResults === 0 ||
+                    currentResultIndex === totalResults - 1
+                      ? 0.3
+                      : 1,
+                }}
+              >
+                <IconSymbol name="chevron.down" size={20} color={textColor} />
+              </Pressable>
+            </View>
+          )}
           <ChatList
             chat_id={chat_id}
             currentUserId={userId}
             textColor={textColor}
             isGroupChat={listData?.chat_type !== "single"}
+            searchMessageId={activeMessageId}
           />
 
           <View

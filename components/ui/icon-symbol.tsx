@@ -31,6 +31,9 @@ const MAPPING = {
   backward: "arrow-back",
   "checkmark.circle.fill": "done",
   "checkmark.message.fill": "done-all",
+  magnifyingglass: "search",
+  "chevron.up": "arrow-upward",
+  "chevron.down": "arrow-downward",
 } as IconMapping;
 
 /**

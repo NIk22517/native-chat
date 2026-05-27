@@ -66,12 +66,14 @@ interface ChatMessageItemProps {
   msg: ChatMessage;
   currentUserId: number | undefined;
   showSenderName?: boolean; // pass true in group chats when different sender
+  searchMessageId: number | null;
 }
 
 const ChatMessageItem = ({
   msg,
   currentUserId,
   showSenderName = false,
+  searchMessageId,
 }: ChatMessageItemProps) => {
   if (msg.message_type === "system") {
     return <SystemEventBubble msg={msg} />;
@@ -134,6 +136,12 @@ const ChatMessageItem = ({
             styles.bubble,
             isMine ? styles.bubbleMine : styles.bubbleOther,
             !hasText && !hasReply && hasAttachments && styles.bubbleMedia,
+            searchMessageId === msg.id
+              ? {
+                  borderWidth: 1,
+                  borderColor: "#FFD60A",
+                }
+              : {},
           ]}
         >
           {hasReply && (

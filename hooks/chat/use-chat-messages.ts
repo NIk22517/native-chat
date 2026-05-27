@@ -1,6 +1,6 @@
 import { services } from "@/services";
 import { useAuthStore } from "@/store/authStore";
-import { useInfiniteQuery } from "@tanstack/react-query";
+import { InfiniteData, useInfiniteQuery } from "@tanstack/react-query";
 
 export type AttachmentType = {
   asset_id: string;
@@ -91,13 +91,26 @@ export type ChatResponse = {
   };
 };
 
-export const useGetChatMessages = ({ chat_id }: { chat_id: string }) => {
+export const useGetChatMessages = ({
+  chat_id,
+  message_id,
+}: {
+  chat_id: string;
+  message_id?: number | null;
+}) => {
   const token = useAuthStore((state) => state.user?.token);
-  return useInfiniteQuery({
-    queryKey: ["get_chat_messages", chat_id],
+  return useInfiniteQuery<
+    ChatResponse,
+    Error,
+    InfiniteData<ChatResponse>,
+    [string, string, { around_id: number | null | undefined }],
+    ChatMessagesParam
+  >({
+    queryKey: ["get_chat_messages", chat_id, { around_id: message_id }],
     initialPageParam: {
       limit: 10,
-    },
+      ...(message_id ? { around_id: message_id } : {}),
+    } as ChatMessagesParam,
     queryFn: async ({ pageParam }) => {
       const res = await services.chatServices.getMessages({
         token,

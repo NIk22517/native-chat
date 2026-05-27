@@ -2,8 +2,8 @@ import {
   useGetChatMessages,
   type ChatMessage,
 } from "@/hooks/chat/use-chat-messages";
-import React, { useCallback, useMemo, useRef } from "react";
-import { FlatList, StyleSheet, Text, View } from "react-native";
+import React, { useCallback, useEffect, useMemo, useRef } from "react";
+import { FlatList, Keyboard, StyleSheet, Text, View } from "react-native";
 import ChatMessageItem from "./chat-message-item";
 
 interface ChatListProps {
@@ -11,6 +11,7 @@ interface ChatListProps {
   textColor: string;
   isGroupChat?: boolean;
   chat_id: string;
+  searchMessageId: number | null;
 }
 
 export default function ChatList({
@@ -18,13 +19,22 @@ export default function ChatList({
   textColor,
   isGroupChat = false,
   chat_id,
+  searchMessageId,
 }: ChatListProps) {
   const flatListRef = useRef<FlatList>(null);
 
-  const { data, hasNextPage, fetchNextPage, isFetchingNextPage } =
-    useGetChatMessages({
-      chat_id,
-    });
+  const {
+    data,
+    hasNextPage,
+    fetchNextPage,
+    isFetchingNextPage,
+    hasPreviousPage,
+    isFetchingPreviousPage,
+    fetchPreviousPage,
+  } = useGetChatMessages({
+    chat_id,
+    message_id: searchMessageId,
+  });
 
   const allMessages = useMemo(
     () => (data?.pages ?? []).flatMap((el) => el.data),
@@ -49,6 +59,7 @@ export default function ChatList({
         msg={item}
         currentUserId={currentUserId}
         showSenderName={shouldShowSenderName(index, item)}
+        searchMessageId={searchMessageId}
       />
     ),
     [currentUserId, shouldShowSenderName],
@@ -65,6 +76,12 @@ export default function ChatList({
     }
   }, [hasNextPage, isFetchingNextPage, fetchNextPage]);
 
+  const handleStartReached = useCallback(() => {
+    if (hasPreviousPage && !isFetchingPreviousPage && !Keyboard.isVisible()) {
+      fetchPreviousPage();
+    }
+  }, [hasPreviousPage, isFetchingPreviousPage, fetchPreviousPage]);
+
   const listEmptyComponent = useCallback(() => {
     return (
       <View style={styles.emptyContainer}>
@@ -78,6 +95,19 @@ export default function ChatList({
       </View>
     );
   }, []);
+
+  useEffect(() => {
+    if (!searchMessageId) return;
+    const index = allMessages.findIndex((m) => m.id === searchMessageId);
+
+    if (index !== -1) {
+      flatListRef.current?.scrollToIndex({
+        index,
+        animated: true,
+        viewPosition: 0.5,
+      });
+    }
+  }, [searchMessageId]);
 
   return (
     <FlatList
@@ -97,6 +127,15 @@ export default function ChatList({
       onEndReachedThreshold={0.5}
       ListFooterComponent={
         isFetchingNextPage ? (
+          <Text style={{ color: textColor, textAlign: "center", padding: 10 }}>
+            Loading....
+          </Text>
+        ) : null
+      }
+      onStartReached={handleStartReached}
+      onStartReachedThreshold={0}
+      ListHeaderComponent={
+        isFetchingPreviousPage ? (
           <Text style={{ color: textColor, textAlign: "center", padding: 10 }}>
             Loading....
           </Text>
