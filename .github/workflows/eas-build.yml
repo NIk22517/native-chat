@@ -30,15 +30,5 @@ jobs:
           eas-version: latest
           token: ${{ secrets.EXPO_TOKEN }}
 
-      - name: 📝 Recreate google-services.json
-        env:
-          GOOGLE_SERVICES_SECRET: ${{ secrets.GOOGLE_SERVICES_JSON }}
-        run: |
-          if [ -z "$GOOGLE_SERVICES_SECRET" ]; then
-            echo "Error: GOOGLE_SERVICES_JSON secret is empty or missing."
-            exit 1
-          fi
-          echo "$GOOGLE_SERVICES_SECRET" > ./google-services.json
-
       - name: 🏗 Build Android Development Profile
         run: eas build --profile development --platform android --non-interactive
