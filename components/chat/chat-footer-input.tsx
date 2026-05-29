@@ -354,7 +354,7 @@ const styles = StyleSheet.create({
   container: {
     flexDirection: "row",
     alignItems: "flex-end",
-    marginBottom: 8,
+    marginBottom: 4,
     marginTop: 4,
     borderWidth: StyleSheet.hairlineWidth,
     borderRadius: 28,
@@ -380,9 +380,6 @@ const styles = StyleSheet.create({
     marginBottom: 1,
   },
   iconBtnPressed: { opacity: 0.55 },
-  // sendBtn: { backgroundColor: "transparent" },
-  // sendBtnActive: { backgroundColor: "#0A7CFF" },
-  // sendBtnPressed: { opacity: 0.75, transform: [{ scale: 0.91 }] },
   backdrop: {
     ...StyleSheet.absoluteFillObject,
     backgroundColor: "rgba(0,0,0,0.5)",

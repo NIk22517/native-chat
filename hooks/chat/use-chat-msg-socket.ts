@@ -5,7 +5,13 @@ import { useEffect, useRef } from "react";
 import { useMarkReadChat } from "./use-chat-list";
 import type { ChatMessagesParam, ChatResponse } from "./use-chat-messages";
 
-export const useChatMsgSocket = ({ chat_id }: { chat_id: string }) => {
+export const useChatMsgSocket = ({
+  chat_id,
+  message_id,
+}: {
+  chat_id: string;
+  message_id: number | null;
+}) => {
   const socket = useSocketStore((state) => state.socket);
   const userId = useAuthStore((state) => state.user?.id);
   const queryClient = useQueryClient();
@@ -28,7 +34,11 @@ export const useChatMsgSocket = ({ chat_id }: { chat_id: string }) => {
       if (Number(chatIdRef.current) !== eventdata.chat_id) return;
 
       queryClient.setQueryData(
-        ["get_chat_messages", eventdata.chat_id?.toString()],
+        [
+          "get_chat_messages",
+          eventdata.chat_id?.toString(),
+          { around_id: message_id },
+        ],
         (
           old:
             | {
@@ -85,7 +95,11 @@ export const useChatMsgSocket = ({ chat_id }: { chat_id: string }) => {
         return;
 
       queryClient.setQueryData(
-        ["get_chat_messages", eventData.chat_id?.toString()],
+        [
+          "get_chat_messages",
+          eventData.chat_id?.toString(),
+          { around_id: message_id },
+        ],
         (
           old:
             | {
@@ -121,7 +135,11 @@ export const useChatMsgSocket = ({ chat_id }: { chat_id: string }) => {
       const msg_id = new Set(eventData.messages_ids);
 
       queryClient.setQueryData(
-        ["get_chat_messages", eventData.chat_id?.toString()],
+        [
+          "get_chat_messages",
+          eventData.chat_id?.toString(),
+          { around_id: message_id },
+        ],
         (
           old:
             | {

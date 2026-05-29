@@ -19,6 +19,7 @@ import { router, Stack, useLocalSearchParams } from "expo-router";
 import { useEffect, useState } from "react";
 import {
   ActivityIndicator,
+  Keyboard,
   KeyboardAvoidingView,
   Platform,
   Pressable,
@@ -36,6 +37,8 @@ export default function ChatMessage() {
   const [openSearch, setOpenSearch] = useState(false);
   const [searchText, setSearchText] = useState("");
   const [currentResultIndex, setCurrentResultIndex] = useState(0);
+  const [keyboardHeight, setKeyboardHeight] = useState(0);
+
   const { data: listData } = useGetSingleChatList({
     chat_id,
   });
@@ -62,6 +65,25 @@ export default function ChatMessage() {
   };
 
   useEffect(() => {
+    const showEvent =
+      Platform.OS === "ios" ? "keyboardWillShow" : "keyboardDidShow";
+    const hideEvent =
+      Platform.OS === "ios" ? "keyboardWillHide" : "keyboardDidHide";
+
+    const showSub = Keyboard.addListener(showEvent, (e) => {
+      setKeyboardHeight(e.endCoordinates.height + 10);
+    });
+    const hideSub = Keyboard.addListener(hideEvent, () => {
+      setKeyboardHeight(0);
+    });
+
+    return () => {
+      showSub.remove();
+      hideSub.remove();
+    };
+  }, []);
+
+  useEffect(() => {
     if (!listData || !listData.unread_count || listData.unread_count < 0) {
       return;
     }
@@ -70,12 +92,6 @@ export default function ChatMessage() {
       chat_id: listData.chat_id,
     });
   }, [listData?.unread_count, listData?.chat_id]);
-
-  useChatMsgSocket({
-    chat_id,
-  });
-
-  useDismissChatNotifications(Number(chat_id));
 
   const selected = useChatStore((s) => s.selected);
   const clearSelection = useChatStore((s) => s.clearSelection);
@@ -105,6 +121,26 @@ export default function ChatMessage() {
     setCurrentResultIndex((i) => Math.min(totalResults - 1, i + 1));
   };
 
+  const KeyboardView = Platform.OS === "ios" ? KeyboardAvoidingView : View;
+
+  const keyboardViewProps =
+    Platform.OS === "ios"
+      ? {
+          behavior: "padding" as const,
+          keyboardVerticalOffset: headerHeight,
+          style: { flex: 1 },
+        }
+      : {
+          style: { flex: 1, marginBottom: keyboardHeight },
+        };
+
+  useChatMsgSocket({
+    chat_id,
+    message_id: activeMessageId,
+  });
+
+  useDismissChatNotifications(Number(chat_id));
+
   return (
     <>
       <Stack.Screen
@@ -120,69 +156,59 @@ export default function ChatMessage() {
             fontWeight: "600",
           },
           headerLeft: isSelected
-            ? () => {
-                return (
-                  <Pressable
-                    onPress={clearSelection}
-                    hitSlop={12}
-                    style={{ marginLeft: 4, marginRight: 10 }}
-                  >
-                    <IconSymbol name="xmark" color={textColor} size={20} />
-                  </Pressable>
-                );
-              }
+            ? () => (
+                <Pressable
+                  onPress={clearSelection}
+                  hitSlop={12}
+                  style={{ marginLeft: 4, marginRight: 10 }}
+                >
+                  <IconSymbol name="xmark" color={textColor} size={20} />
+                </Pressable>
+              )
             : undefined,
           headerRight: isSelected
-            ? () => {
-                return (
-                  <View style={{ flexDirection: "row", gap: 20 }}>
-                    <DeleteMessage />
-                    {selected.size === 1 && (
-                      <Pressable
-                        hitSlop={12}
-                        onPress={() => {
-                          const message_id = Array.from(selected.keys())[0];
-                          if (!message_id) return;
-                          router.push({
-                            pathname: "/chat/msg-status/[chat_id]/[message_id]",
-                            params: {
-                              chat_id,
-                              message_id,
-                            },
-                          });
-                        }}
-                      >
-                        <IconSymbol
-                          name="info.circle"
-                          color={textColor}
-                          size={20}
-                        />
-                      </Pressable>
-                    )}
-                  </View>
-                );
-              }
-            : !openSearch
-              ? () => {
-                  return (
-                    <Pressable hitSlop={12} onPress={() => setOpenSearch(true)}>
+            ? () => (
+                <View style={{ flexDirection: "row", gap: 20 }}>
+                  <DeleteMessage />
+                  {selected.size === 1 && (
+                    <Pressable
+                      hitSlop={12}
+                      onPress={() => {
+                        const message_id = Array.from(selected.keys())[0];
+                        if (!message_id) return;
+                        router.push({
+                          pathname: "/chat/msg-status/[chat_id]/[message_id]",
+                          params: {
+                            chat_id,
+                            message_id,
+                          },
+                        });
+                      }}
+                    >
                       <IconSymbol
-                        name="magnifyingglass"
+                        name="info.circle"
                         color={textColor}
                         size={20}
                       />
                     </Pressable>
-                  );
-                }
+                  )}
+                </View>
+              )
+            : !openSearch
+              ? () => (
+                  <Pressable hitSlop={12} onPress={() => setOpenSearch(true)}>
+                    <IconSymbol
+                      name="magnifyingglass"
+                      color={textColor}
+                      size={20}
+                    />
+                  </Pressable>
+                )
               : undefined,
         }}
       />
 
-      <KeyboardAvoidingView
-        style={{ flex: 1 }}
-        behavior={Platform.OS === "ios" ? "padding" : "padding"}
-        keyboardVerticalOffset={Platform.OS === "ios" ? headerHeight : 0}
-      >
+      <KeyboardView {...keyboardViewProps}>
         <View
           style={{
             flex: 1,
@@ -278,6 +304,7 @@ export default function ChatMessage() {
               </Pressable>
             </View>
           )}
+
           <ChatList
             chat_id={chat_id}
             currentUserId={userId}
@@ -290,14 +317,15 @@ export default function ChatMessage() {
             style={{
               paddingHorizontal: 5,
               paddingTop: 4,
-              paddingBottom: Math.max(insets.bottom, 8),
+              paddingBottom:
+                keyboardHeight > 0 ? 6 : Math.max(insets.bottom, 8),
               backgroundColor,
             }}
           >
             <ChatInput chat_id={chat_id} />
           </View>
         </View>
-      </KeyboardAvoidingView>
+      </KeyboardView>
     </>
   );
 }

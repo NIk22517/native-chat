@@ -1,6 +1,5 @@
 import { useChatStore } from "@/store/useChatStore";
 import { useEffect } from "react";
-import { StyleSheet } from "react-native";
 import Animated, {
   useAnimatedStyle,
   useSharedValue,
@@ -52,7 +51,7 @@ export const ChatReply = () => {
     overflow: "hidden",
   }));
   return (
-    <Animated.View style={[styles.replyBar, replyBarStyle]}>
+    <Animated.View style={[replyBarStyle]}>
       {replyData && (
         <MessageReplyPreview
           isMine={false}
@@ -70,12 +69,3 @@ export const ChatReply = () => {
     </Animated.View>
   );
 };
-
-const styles = StyleSheet.create({
-  replyBar: {
-    backgroundColor: "#1C1C1E",
-    borderTopWidth: StyleSheet.hairlineWidth,
-    borderTopColor: "rgba(255,255,255,0.08)",
-    // borderRadius: 10,
-  },
-});
